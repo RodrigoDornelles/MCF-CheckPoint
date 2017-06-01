@@ -12,9 +12,30 @@ Nick:	RazorGuigo
 AGE: 	18
 --------------------------------
 */
+
+//-----------STREAMER Required-------------
 #if !defined Streamer_IncludeFileVersion
-	#error [MCF CP] This include requires Streamer Plugin! 
+	#tryinclude <streamer>
+
+	#if !defined Streamer_IncludeFileVersion
+		#error [MCF CP] This include requires Streamer Plugin! 
+	#endif
 #endif
+//------------------------------------------
+
+//-----------Interator Required-------------
+#if !defined foreach
+	#tryinclude <YSI\y_iterate>
+
+	#if !defined foreach
+		#tryinclude <foreach>
+
+		#if !defined foreach
+			#error [MCF CP] This include requires semone interator include! 
+		#endif
+	#endif	
+#endif
+//------------------------------------------
 
 #if !defined MCF_CP_VERSION
 public MCF_CP_VERSION = 0x00002;
@@ -46,7 +67,7 @@ new bool:i_AreaIsCP[MAX_OBJECTS];									//verifica se area pertence ao checkpo
 new i_AreaCP[MAX_OBJECTS];											//armazena o id do checkpoint em tal area									
 
 													
-new i_ObjCP[MAX_CPS];											//Objeto se comporta como entidade do CP
+new i_ObjCP[MAX_CPS];												//Objeto se comporta como entidade do CP
 new i_CPAREA[MAX_CPS];												//Area de interação do CP utilza streamer
 
 new i_CPINFOS[MAX_CPS][MAX_CP_INFO];								//Armazena informações importantes dos checkpoints
