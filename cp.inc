@@ -28,7 +28,7 @@
 ## Internal:
  * **Callbacks:**
  	- OnPlayerEnterDynamicArea
- 	- OnPlayerExitDynamicArea
+ 	- OnPlayerLeaveDynamicArea
  * **Enums:**
  	- E_CP_MODEL_DATA
  * **Tags:**
@@ -204,7 +204,7 @@ public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 #endif
 
 
-public OnPlayerExitDynamicArea(playerid, STREAMER_TAG_AREA areaid)
+public OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 {
 	new arr[32];
 	Streamer_GetArrayData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID, arr);
@@ -225,19 +225,19 @@ public OnPlayerExitDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 		DestroyDynamicArea(areaid);		
 		return true;
 	}
-	#if defined cp_OnPlayerExitDynamicArea
-		return CP_OnPlayerExitDynamicArea(playerid, STREAMER_TAG_AREA areaid);
+	#if defined cp_OnPlayerLeaveDynamicArea
+		return CP_OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid);
 	#else
 		return 1;
 	#endif
 }
-#if defined _ALS_OnPlayerExitDynamicArea
-	#undef OnPlayerExitDynamicArea
+#if defined _ALS_OnPlayerLeaveDynamicArea
+	#undef OnPlayerLeaveDynamicArea
 #else
-	#define _ALS_OnPlayerExitDynamicArea
+	#define _ALS_OnPlayerLeaveDynamicArea
 #endif
  
-#define OnPlayerExitDynamicArea CP_OnPlayerExitDynamicArea
-#if defined CP_OnPlayerExitDynamicArea
-	forward CP_OnPlayerExitDynamicArea(playerid, STREAMER_TAG_AREA areaid);
+#define OnPlayerLeaveDynamicArea CP_OnPlayerLeaveDynamicArea
+#if defined CP_OnPlayerLeaveDynamicArea
+	forward CP_OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid);
 #endif
