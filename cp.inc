@@ -184,6 +184,9 @@ public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 			strins(arr[1], "p1_", 0);
 			CallLocalFunction(arr, "d", playerid);
 		}
+		new obj = Streamer_GetIntData(STREAMER_TYPE_AREA, areaid, E_STREAMER_ATTACHED_OBJECT);
+		DestroyDynamicObject(obj);
+		DestroyDynamicArea(areaid);		
 		return true;
 	}
 	#if defined cp_OnPlayerEnterDynamicArea
@@ -220,6 +223,9 @@ public OnPlayerExitDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 			strins(arr[1], "p2_", 0);
 			CallLocalFunction(arr, "d", playerid);
 		}
+		new obj = Streamer_GetIntData(STREAMER_TYPE_AREA, areaid, E_STREAMER_ATTACHED_OBJECT);
+		DestroyDynamicObject(obj);
+		DestroyDynamicArea(areaid);		
 		return true;
 	}
 	#if defined cp_OnPlayerExitDynamicArea
