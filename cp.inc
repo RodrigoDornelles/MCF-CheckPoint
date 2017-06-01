@@ -11,6 +11,18 @@ Actor:	Rodrigo Guigo Dornelles
 Nick:	RazorGuigo
 AGE: 	18
 --------------------------------
+
+Notas para compreensão: 
+
+#esta include funciona, criando Areas no local do CP, e um objeto em que a mesma é attechada, assim há area fica responsavel pela interação,
+e o objeto mostra visuamente onde o CP está alocado, e tambem, é quem faz a movimentação do CP!
+
+#Todas as funcões, classes, e variantes que começem com "i_" são de uso interno, e devem ser invelopadas! 
+
+#CP per players não poderam ser mostrados para outro player, se não o mesmo que o encherga
+
+#em atualização o CP perplayer será fragmentado, e separado dos globais! (CPP)
+
 */
 
 #if !defined MCF_CP_VERSION 					//você pode incluir varias vezes, mas somente a primeira conta!
@@ -50,6 +62,14 @@ public MCF_CP_VERSION = 0x00002;
 #if !defined CP_DEBUG
 	#define CP_DEBUG 0
 #endif
+
+#define CP_RED_SMALLL 	0
+#define CP_GREEN_SMALL	1
+#define CP_BLUE_SMALL	3
+#define CP_YELLOW_SMALL 4
+#define CP_RED_BIG		5
+#define CP_GREEN_BIG 	6
+#define CP_BLUE_BIG 	7 
 
 enum MAX_CP_INFO
 {
@@ -207,7 +227,7 @@ enum CP_MODEL_INFO
 	CP_Color,
 	Float:CP_SizeModel
 }
-new i_CP_MODELS[][CP_MODEL_INFO]=
+new i_MODELS[][CP_MODEL_INFO]=
 {
 	{19605, 1.0},	//MIN CP RED
 	{19606, 1.0},	//MIN CP GREEN
@@ -219,20 +239,20 @@ new i_CP_MODELS[][CP_MODEL_INFO]=
 };
 stock i_GetModelCP(modelid)
 {
-	if(sizeof(i_CP_MODELS) < modelid || 0 > modelid) 
+	if(sizeof(i_MODELS) < modelid || 0 > modelid) 
 	{
 		switch(modelid)
 		{
-			case 19605..19607,19197,19945..19947: return modelid;
-			default:	return 19605;
+			case 19605..19607,19197,19945..19947: return modelid;		//caso digitar o modelo do objeto ao invez do modelo do CP, é aceito
+			default:	return 19605;									//se o modelid for invalido, é selecionado o primeiro CP
 		}
 	}
-	return i_CP_MODELS[modelid][CP_Color];
+	return i_MODELS[modelid][CP_Color];
 }
 stock i_GetCPsize(modelid, &Float:CP_size)
 {
-	if(sizeof(i_CP_MODELS) < modelid || 0 > modelid) CP_size= 1.0;
-	CP_size= i_CP_MODELS[modelid][CP_SizeModel];
+	if(sizeof(i_MODELS) < modelid || 0 > modelid) CP_size= 1.0;
+	CP_size= i_MODELS[modelid][CP_SizeModel];
 	return 1;
 }
 //-------------------------------------------------------------------
@@ -287,7 +307,7 @@ public i_OnPlayerCPchange(playerid, areaid, toggle)                //Processador
 //------------------------------------------------------------------
 
 //----------------Internal PLAYER CP CHANGE--------------------------
-public CP_OnPlayerEnterDynArea(playerid, areaid)
+public i_OnPlayerEnterDynArea(playerid, areaid)
 {
 	if(i_AreaIsCP[areaid])
 		return i_OnPlayerCPchange(playerid, areaid, true);
@@ -295,7 +315,7 @@ public CP_OnPlayerEnterDynArea(playerid, areaid)
 }
 
 
-public CP_OnPlayerLeaveDynArea(playerid, areaid)
+public i_OnPlayerLeaveDynArea(playerid, areaid)
 {
 	if(i_AreaIsCP[areaid])
 		return i_OnPlayerCPchange(playerid, areaid, false);
@@ -315,8 +335,8 @@ public CP_OnPlayerLeaveDynArea(playerid, areaid)
 //--------------[HOOK PLAYER ENTER DYNAMIC AREA]------------------------------
 public OnPlayerEnterDynamicArea(playerid, areaid)
 {
-    #if defined CP_OnPlayerEnterDynArea
-        return CP_OnPlayerEnterDynArea(playerid, areaid);
+    #if defined i_OnPlayerEnterDynArea
+        return i_OnPlayerEnterDynArea(playerid, areaid);
     #else
         return 1;
     #endif
@@ -328,18 +348,18 @@ public OnPlayerEnterDynamicArea(playerid, areaid)
 #define _ALS_OnPlayerEnterDynamicArea
 #endif
 
-#define OnPlayerEnterDynamicArea CP_OnPlayerEnterDynArea
+#define OnPlayerEnterDynamicArea i_OnPlayerEnterDynArea
 
 
-forward CP_OnPlayerEnterDynArea();
+forward i_OnPlayerEnterDynArea();
 //----------------------------------------------------------------------------
 
 
 //--------------[HOOK PLAYER LEAVE DYNAMIC AREA]------------------------------
 public OnPlayerLeaveDynamicArea(playerid, areaid)
 {
-    #if defined CP_OnPlayerLeaveDynArea
-        return CP_OnPlayerLeaveDynArea(playerid, areaid);
+    #if defined i_OnPlayerLeaveDynArea
+        return i_OnPlayerLeaveDynArea(playerid, areaid);
     #else
         return 1;
     #endif
@@ -352,9 +372,9 @@ public OnPlayerLeaveDynamicArea(playerid, areaid)
 #define _ALS_OnPlayerLeaveDynamicArea
 #endif
 
-#define OnPlayerLeaveDynamicArea CP_OnPlayerLeaveDynArea
+#define OnPlayerLeaveDynamicArea i_OnPlayerLeaveDynArea
 
-forward CP_OnPlayerLeaveDynArea();
+forward i_OnPlayerLeaveDynArea();
 //----------------------------------------------------------------------------
 
 #endif
