@@ -99,6 +99,19 @@ AGE:		19
 #define CPEnter:%0(%1) forward cp1_%0(%1);public cp1_%0(%1)
 #define CPExit:%0(%1)  forward cp2_%0(%1);public cp2_%0(%1)
 
+
+#if !defined MAX_CPS
+    #define MAX_CPS (500)
+#endif
+
+#define INVALID_CP -1
+
+new Iterator:Iter_free<MAX_CPS>;
+new i_CountCP;
+
+new CPObject[MAX_CPS];
+new CPArea[MAX_CPS];
+
 enum CPType {
 	CP_ARROW_RED,
 	CP_ARROW_GREEN,
@@ -114,7 +127,7 @@ enum CPType {
 	CP_CIRCLE_BLUE,
 
 };
-#define CP_INVALID -1
+
 
 #if __Pawn != 0x030A // != Zeex pawn
 	enum E_CP_MODEL_DATA {
@@ -156,10 +169,10 @@ static CP_MODEL_DATA[CPType][E_CP_MODEL_DATA]=
 stock CreatePlayerCheckPoint(playerid, name[29] = "", CPType:type, Float:x, Float:y, Float:z, worldid = -1, interiorid = -1)
 {
 	if(!(CP_ARROW_RED <= type <= CP_CIRCLE_BLUE))
-		return CP_INVALID;
+		return INVALID_CP;
 
 	if(!(0 <= playerid > MAX_PLAYERS))
-		return CP_INVALID;
+		return INVALID_CP;
 
 	return CreateCheckPoint(name, type, x, y, z, worldid, interiorid, playerid);
 }
@@ -167,20 +180,20 @@ stock CreatePlayerCheckPoint(playerid, name[29] = "", CPType:type, Float:x, Floa
 stock CreateCheckPoint(name[29] = "", CPType:type, Float:x, Float:y, Float:z, worldid = -1, interiorid = -1, forplayer= -1)
 {
 	if(!(CP_ARROW_RED <= type <= CP_CIRCLE_BLUE))
-		return CP_INVALID;
+		return INVALID_CP;
 
 	if(forplayer != -1)
 	{
 		if(!(0 <= forplayer > MAX_PLAYERS))
-			return CP_INVALID;
+			return INVALID_CP;
 	}
 
 	new id= GetNexCPID();
 
 	if(CP_ARROW_RED <= type <= CP_ARROW_YELLOW) z += 2.0;
 
-	new object = CreateDynamicObject(CP_MODEL_DATA[type][CP_Model], x, y, z, 0.0, 0.0, 0.0, worldid, interiorid, forplayer);
-	new area = CreateDynamicSphere(x, y, z, CP_MODEL_DATA[type][CP_ModelSize], worldid, interiorid, forplayer);
+	new object= CPObject[id]= 	CreateDynamicObject(CP_MODEL_DATA[type][CP_Model], x, y, z, 0.0, 0.0, 0.0, worldid, interiorid, forplayer);
+	new area=	CPArea[id]= 	CreateDynamicSphere(x, y, z, CP_MODEL_DATA[type][CP_ModelSize], worldid, interiorid, forplayer);
 
 	switch(type)
 	{
@@ -200,6 +213,33 @@ stock CreateCheckPoint(name[29] = "", CPType:type, Float:x, Float:y, Float:z, wo
 
 	AttachDynamicAreaToObject(area, object);
 	return id;
+}
+stock DestroyCheckPoint( CPID)
+{
+	DestroyDynamicArea(CPArea[CPID]);
+	DestroyDynamicObject(CPObject[CPID]);
+	Iter_Add(Iter_free, CPID);
+}
+
+stock AttachCPtoObject( CPID, objectid, Float:x=0.0, Float:y=0.0, Float:z=0.0)
+{
+	new obj= CPObject[CPID];
+	return AttachDynamicObjectToObject(obj, objectid, x, y, z, 0.0, 0.0, 0.0);
+}
+stock AttachCPtoPlayer( CPID, playerid, Float:x=0.0, Float:y=0.0, Float:z=0.0)
+{
+	new obj= CPObject[CPID];
+	return AttachDynamicObjectToPlayer(obj, playerid, x, y, z, 0.0, 0.0, 0.0);
+}
+stock AttachCPtoVehicle( CPID, vehicleid, Float:x=0.0, Float:y=0.0, Float:z=0.0)
+{
+	new obj= CPObject[CPID];
+	return AttachDynamicObjectToVehicle(obj, vehicleid, x, y, z, 0.0, 0.0, 0.0);
+}
+stock AttachCPtoCP( CPID, CPattached, Float:x=0.0, Float:y=0.0, Float:z=0.0)
+{
+	new obj= CPObject[CPID];
+	return AttachDynamicObjectToObject(obj, CPObject[CPattached], x, y, z, 0.0, 0.0, 0.0);
 }
 
 stock IsPlayerInAnyCheckpointEx(playerid)
@@ -262,15 +302,16 @@ stock GetNexCPID()                        //capta o ID, do proximo CP a ser cria
 {
     foreach(new free : Iter_free)        //recupera o ID de um CP deletado
     {
+    	Iter_Remove(Iter_free, free);
         return free;
     }
-    if(i_countcp + 1 == MAX_CPS)
+    if(i_CountCP + 1 == MAX_CPS)
     {
         printf("[ERROR] max checkpoints loaded %d/%d", i_CountCP + 1, MAX_CPS);
         return INVALID_CP;
     }
-    i_countcp++;                         //Caso não haja CP deletados, ele cria um novo ID
-    return  i_countcp;
+    i_CountCP++;                         //Caso não haja CP deletados, ele cria um novo ID
+    return  i_CountCP;
 }
 
 public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
