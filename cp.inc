@@ -63,6 +63,8 @@ public MCF_CP_VERSION = 0x00002;
 	#define CP_DEBUG 0
 #endif
 
+#define INVALID_CP 		-1
+
 #define CP_RED_SMALLL 	0
 #define CP_GREEN_SMALL	1
 #define CP_BLUE_SMALL	3
@@ -94,7 +96,7 @@ new i_CPAREA[MAX_CPS];												//Area de interação do CP utilza streamer
 new i_CPINFOS[MAX_CPS][MAX_CP_INFO];								//Armazena informações importantes dos checkpoints
 
 new i_CountCP;														//conta quantos checkpoints foram criados
-new Iterator:i_GenEmptyID<MAX_CAMERAS>;								//Armazenar ids vazios, derivados de CP deletados
+new Iterator:i_GenEmptyID<MAX_CPS>;									//Armazenar ids vazios, derivados de CP deletados
 
 new bool:i_PlayerInCP[MAX_PLAYERS][MAX_CPS];
 //------------------------------------------------------------------
@@ -114,9 +116,10 @@ forward i_OnPlayerCPchange(playerid, areaid, toggle);
 
 stock CreateCP(modelid=1, Float:x = 0.0, Float:y = 0.0, Float:z = 0.0, bool:show= true, worldid = -1, interiorid = -1, forplayer= -1)
 {
-	if(i_CPCOUNT + 1 == MAX_CPS)	return printf("[ERROR] max checkpoints loaded %d/%d", i_CPCOUNT + 1, MAX_CPS);
-
 	new id=	i_GetNexCPID();
+
+	if(id == INVALID_CP) return INVALID_CP;
+
 
 	new Float:size;
 	i_GetCPsize(modelid, size);
@@ -127,7 +130,7 @@ stock CreateCP(modelid=1, Float:x = 0.0, Float:y = 0.0, Float:z = 0.0, bool:show
 
 	AttachDynamicAreaToObject(area, object);
 	i_AreaIsCP[area]= true;
-	i_AreaCP[area]= i_CPCOUNT;
+	i_AreaCP[area]= id;
 
 	i_CPINFOS[id][CP_modelid]= 		i_GetModelCP(modelid);
 	i_CPINFOS[id][CP_show]=			show;
@@ -223,9 +226,14 @@ stock CreateCPObj(modelid, Float:x, Float:y, Float:z,worldid, interiorid, bool:s
 }
 stock i_GetNexCPID()						//capta o ID, do proximo CP a ser criado!
 {
-	forwach(new free : i_GenEmptyID)		//recupera o ID de um CP deletado
+	foreach(new free : i_GenEmptyID)		//recupera o ID de um CP deletado
 	{
 		return free;
+	}
+	if(i_CountCP + 1 == MAX_CPS)
+	{
+		printf("[ERROR] max checkpoints loaded %d/%d", i_CountCP + 1, MAX_CPS);
+		return INVALID_CP;
 	}
 	i_CountCP++; 							//Caso não haja CP deletados, ele cria um novo ID
 	return i_CountCP;
@@ -299,7 +307,7 @@ public i_OnPlayerCPchange(playerid, areaid, toggle)                //Processador
 			{
 				
 				if(i_CPINFOS[id][CP_z] < (z+6))	return 0;
-			}		
+			}	
 		}
 		CallLocalFunction("OnPlayerEnterCP","ii",playerid,id);			//new v3 Correção de BUG-> estava em posição errada, e era chama mesmo sendo invalida!
 		i_PlayerInCP[playerid][id]=true;
