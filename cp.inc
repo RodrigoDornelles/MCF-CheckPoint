@@ -1,3 +1,4 @@
+
 /**
  * MULTI COLERED FUNCTIONAL CP
 
@@ -105,7 +106,7 @@ stock SetPlayerCheckpointEx(playerid, name[29] = "", CPType:type, Float:x, Float
 
 	if(CP_ARROW_RED <= type <= CP_ARROW_YELLOW) z += 2.0;
 
-	new object = CreateDynamicObject(CP_MODEL_DATA[type], x, y, z, 0.0, 0.0, 0.0, worldid, interiorid, playerid);
+	new object = CreateDynamicObject(CP_MODEL_DATA[type][CP_Model], x, y, z, 0.0, 0.0, 0.0, worldid, interiorid, playerid);
 	new area = CreateDynamicSphere(x, y, z, CP_MODEL_DATA[type][CP_ModelSize], worldid, interiorid, playerid);
 
 	new arr[32];
@@ -130,7 +131,7 @@ stock IsPlayerInAnyCheckpointEx(playerid)
 
 	for(new STREAMER_TAG_AREA i; i < num; ++i)
 	{
-		Streamer_GetArrayData(STREAMER_TYPE_AREA, area, E_STREAMER_EXTRA_ID, arr);
+		Streamer_GetArrayData(STREAMER_TYPE_AREA, i, E_STREAMER_EXTRA_ID, arr);
 		if(arr[0] == CP_STREAMER_IDENTIFIER)
 		{
 			return true;
@@ -154,7 +155,7 @@ stock IsPlayerInCheckpointEx(playerid, name[])
 
 	for(new STREAMER_TAG_AREA i; i < num; ++i)
 	{
-		Streamer_GetArrayData(STREAMER_TYPE_AREA, area, E_STREAMER_EXTRA_ID, arr);
+		Streamer_GetArrayData(STREAMER_TYPE_AREA, i, E_STREAMER_EXTRA_ID, arr);
 		if(arr[0] == CP_STREAMER_IDENTIFIER)
 		{
 			// isnull
