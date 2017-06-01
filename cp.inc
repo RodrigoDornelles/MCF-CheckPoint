@@ -139,7 +139,7 @@ stock CreateCP(modelid=1, Float:x = 0.0, Float:y = 0.0, Float:z = 0.0, bool:show
 	i_CPINFOS[id][CP_y]= 	y;
 	i_CPINFOS[id][CP_z]= 	z;
 
-	return i_CPCOUNT;
+	return id;
 }
 stock bool:IsPlayerInCP(playerid, CPID)
 {
@@ -189,7 +189,7 @@ stock SetCPInterior( CPID, interiorid)
 	DestroyDynamicObject(i_ObjCP);
 
 	new obj = i_ObjCP[CPID] = CreateCPObj(modelid, i_CPINFOS[id][CP_x],i_CPINFOS[id][CP_y],i_CPINFOS[id][CP_z],
-		i_CPINFOS[id][CP_worldid],	i_CPINFOS[id][CP_interiorid],i_CPINFOS[id][CP_show];
+		i_CPINFOS[id][CP_worldid],	i_CPINFOS[id][CP_interiorid],i_CPINFOS[id][CP_show]);
 
 	AttachDynamicAreaToObject(i_CPAREA[id], obj);
 }
@@ -220,6 +220,15 @@ stock CreateCPObj(modelid, Float:x, Float:y, Float:z,worldid, interiorid, bool:s
 
 	new obj = CreateDynamicObject(modelid, x, y, z_fix, 0.0, 0.0, 0.0, worldid_fix, interiorid, forplayer);
 	return obj;
+}
+stock i_GetNexCPID()						//capta o ID, do proximo CP a ser criado!
+{
+	forwach(new free : i_GenEmptyID)		//recupera o ID de um CP deletado
+	{
+		return free;
+	}
+	i_CountCP++; 							//Caso não haja CP deletados, ele cria um novo ID
+	return i_CountCP;
 }
 //------------------INTERNAL CP SIZES & MODEL-------------------------------
 enum CP_MODEL_INFO
