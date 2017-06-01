@@ -13,6 +13,8 @@ AGE: 	18
 --------------------------------
 */
 
+#if !defined MCF_CP_VERSION 					//você pode incluir varias vezes, mas somente a primeira conta!
+
 //-----------STREAMER Required-------------
 #if !defined Streamer_IncludeFileVersion
 	#tryinclude <streamer>
@@ -37,7 +39,6 @@ AGE: 	18
 #endif
 //------------------------------------------
 
-#if !defined MCF_CP_VERSION
 public MCF_CP_VERSION = 0x00002;
 #pragma unused MCF_CP_VERSION
 	
@@ -237,8 +238,8 @@ stock i_GetCPsize(modelid, &Float:CP_size)
 //-------------------------------------------------------------------
 
 //------------------INTERNAL CP CALLBACKS---------------------------
-public i_OnPlayerCPchange(playerid, areaid, toggle)
-{
+public i_OnPlayerCPchange(playerid, areaid, toggle)                //Processador das CP, para transformar area em CP 
+{																  //Reconhcer local onde está sendo interagida
 	new Float:x,Float:y,Float:z;
 	GetPlayerPos(playerid, x, y, z);
 	new worldid=GetPlayerVirtualWorld(playerid);
@@ -249,35 +250,38 @@ public i_OnPlayerCPchange(playerid, areaid, toggle)
 	
 	if(toggle)
 	{
-		CallRemoteFunction("OnPlayerEnterCP","ii",playerid,id);
-		i_PlayerInCP[playerid][id]=true;
-
 		if(i_CPINFOS[id][CP_forplayer] != playerid && i_CPINFOS[id][CP_forplayer] != -1)	
-			return 0;
+			return 0;				//[NEGADO] CP é mostrado somente para um player diferente do que interagiu!
 
 		if(i_CPINFOS[id][CP_interiorid] != interior && i_CPINFOS[id][CP_interiorid] != -1)	
-			return 0;
+			return 0;				//[NEGADO] Interiores diferentes entre player e CP
 
 		if(i_CPINFOS[id][CP_worldid] !=	worldid && i_CPINFOS[id][CP_worldid] != -1)	
-			return 0;
+			return 0;				//[NEGADO] VW diferentes entre player e CP
+
+		if(i_CPINFOS[id][CP_z] > z)
+			return 0;				//[NEGADO] Player abaixo do CP!
+
 
 		switch(i_CPINFOS[id][CP_modelid])
 		{
-			case 19945..19947: if(i_CPINFOS[id][CP_z] < (z+64))	return 0;
-			default: 
+			case 19945..19947: 	if(i_CPINFOS[id][CP_z] < (z+64))	return 0;	//[NEGADO]Altura minima CP Grande
+			default: 			if(i_CPINFOS[id][CP_z] < (z+5))		return 0;	//[NEGADO]Altura maxima CP pequeno
 			{
-				if(i_CPINFOS[id][CP_z] > z) 	return 0;
+				
 				if(i_CPINFOS[id][CP_z] < (z+6))	return 0;
 			}		
 		}
+		CallLocalFunction("OnPlayerEnterCP","ii",playerid,id);			//new v3 Correção de BUG-> estava em posição errada, e era chama mesmo sendo invalida!
+		i_PlayerInCP[playerid][id]=true;
 	}
 	else
-	{																	//new v2
-		if(i_PlayerInCP[playerid][id] == false) return 0;				//Correção de BUG-> players passando por baixo do CP chamacallback
-		CallRemoteFunction("OnPlayerLeaveCP","ii",playerid,id);
+	{																	//new v2 Correção de BUG-> players passando por baixo do CP chamacallback
+		if(i_PlayerInCP[playerid][id] == false) return 0;				//[NEGACAO] o player não entrou no CP, para poder sair 
+		CallLocalFunction("OnPlayerLeaveCP","ii",playerid,id);
 		i_PlayerInCP[playerid][id]=false;
 	}
-	CallRemoteFunction("OnPlayerCPchange","iii",playerid, id, toggle);
+	CallLocalFunction("OnPlayerCPchange","iii",playerid, id, toggle);
 	return 1;
 }
 //------------------------------------------------------------------
