@@ -106,11 +106,11 @@ AGE:		19
 
 #define INVALID_CP -1
 
-new Iterator:Iter_free<MAX_CPS>;
-new i_CountCP;
+static Iterator:Iter_free<MAX_CPS>;
+static i_CountCP;
 
-new CPObject[MAX_CPS];
-new CPArea[MAX_CPS];
+static CPObject[MAX_CPS];
+static CPArea[MAX_CPS];
 
 enum CPType {
 	CP_ARROW_RED,
