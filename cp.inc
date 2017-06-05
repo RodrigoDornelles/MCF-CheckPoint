@@ -177,18 +177,12 @@ static CP_MODEL_DATA[CPType][E_CP_MODEL_DATA]=
 
 stock CreatePlayerCheckPoint(playerid, name[29] = "", CPType:type, Float:x, Float:y, Float:z, worldid = -1, interiorid = -1)
 {
-	if(!(CP_ARROW_RED <= type <= CP_CIRCLE_BLUE))
-		return INVALID_CP;
-
-	if(!(0 <= playerid > MAX_PLAYERS))
-		return INVALID_CP;
-
 	return CreateCheckPoint(name, type, x, y, z, worldid, interiorid, playerid);
 }
 
 stock CreateCheckPoint(name[29] = "", CPType:type, Float:x, Float:y, Float:z, worldid = -1, interiorid = -1, forplayer= -1)
 {
-	if(!(CP_ARROW_RED <= type <= CP_CIRCLE_BLUE))
+	if(!(CP_ARROW_RED <= type <= CP_INVISIBLE))
 		return INVALID_CP;
 
 	if(forplayer != -1)
@@ -199,7 +193,9 @@ stock CreateCheckPoint(name[29] = "", CPType:type, Float:x, Float:y, Float:z, wo
 
 	new id= GetNexCPID();
 
-	if(CP_ARROW_RED <= type <= CP_ARROW_YELLOW) z += 2.0;
+	if(type == CP_ARROW_YELLOW) z += 1.4;
+	if(CP_CIRCLE_RED <= type <= CP_CIRCLE_BLUE) z -= 0.4;
+
 
 	new object= CPObject[id]= 	CreateDynamicObject(CP_MODEL_DATA[type][CP_Model], x, y, z, 0.0, 0.0, 0.0, worldid, interiorid, forplayer);
 	new area=	CPArea[id]= 	CreateDynamicSphere(x, y, z, CP_MODEL_DATA[type][CP_ModelSize], worldid, interiorid, forplayer);
@@ -472,8 +468,6 @@ public OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 			CallLocalFunction(arr, "d", playerid);
 		}
 		new obj = Streamer_GetIntData(STREAMER_TYPE_AREA, areaid, E_STREAMER_ATTACHED_OBJECT);
-		DestroyDynamicObject(obj);
-		DestroyDynamicArea(areaid);		
 		return true;
 	}
 	#if defined CP_OnPlayerLeaveDynamicArea
