@@ -89,10 +89,10 @@ AGE:		19
 #endif
 
 
-#if defined mcp_included
+#if defined mCP_included
  	#endinput
 #endif
-#define mcp_included
+#define mCP_included
 
 #define CP_STREAMER_IDENTIFIER 2147483646
 
@@ -104,13 +104,21 @@ AGE:		19
     #define MAX_CPS (500)
 #endif
 
+#if !defined MAX_AREAS
+    #define MAX_AREAS (1000)
+#endif
+
 #define INVALID_CP -1
 
 static Iterator:Iter_free<MAX_CPS>;
+static Iterator:Iter_CPS<MAX_CPS>;
 static i_CountCP;
 
-static CPObject[MAX_CPS];
-static CPArea[MAX_CPS];
+static CPObject[MAX_CPS];               //CPID -> to -> dynamicObject
+static CPArea[MAX_CPS];					//CPID -> to -> AREAID
+static AreaCP[MAX_AREAS];				//AREAID -> to -> CPID
+
+static bool:InCP[MAX_PLAYERS][MAX_CPS];				//Player está no CP
 
 enum CPType {
 	CP_ARROW_RED,
@@ -125,7 +133,7 @@ enum CPType {
 	CP_CIRCLE_YELLOW,
 	CP_CIRCLE_GREEN,
 	CP_CIRCLE_BLUE,
-
+	CP_INVISIBLE
 };
 
 
@@ -155,15 +163,16 @@ static CP_MODEL_DATA[CPType][E_CP_MODEL_DATA]=
 	{1317,	1.0}, // CP_CIRCLE_ORANGE
 	{1317,	1.0}, // CP_CIRCLE_YELLOW
 	{1317,	1.0}, // CP_CIRCLE_GREEN
-	{1317,	1.0}  // CP_CIRCLE_BLUE
+	{1317,	1.0}, // CP_CIRCLE_BLUE
+	{19300,	1.0}  // CP_INVISIBLE
 };
 
 #if defined OnPlayerEnterCheckpointEx
-	forward OnPlayerEnterCheckpointEx(playerid, checkpoint[]);
+	forward OnPlayerEnterCheckpointEx(playerid, checkpoint[], CPID);
 #endif
 
 #if defined OnPlayerExitCheckpointEx
-	forward OnPlayerExitCheckpointEx(playerid, checkpoint[]);
+	forward OnPlayerExitCheckpointEx(playerid, checkpoint[], CPID);
 #endif
 
 stock CreatePlayerCheckPoint(playerid, name[29] = "", CPType:type, Float:x, Float:y, Float:z, worldid = -1, interiorid = -1)
@@ -195,6 +204,8 @@ stock CreateCheckPoint(name[29] = "", CPType:type, Float:x, Float:y, Float:z, wo
 	new object= CPObject[id]= 	CreateDynamicObject(CP_MODEL_DATA[type][CP_Model], x, y, z, 0.0, 0.0, 0.0, worldid, interiorid, forplayer);
 	new area=	CPArea[id]= 	CreateDynamicSphere(x, y, z, CP_MODEL_DATA[type][CP_ModelSize], worldid, interiorid, forplayer);
 
+	AreaCP[area]= id;
+
 	switch(type)
 	{
 		case CP_CIRCLE_RED:		SetDynamicObjectMaterial(object, 0, 18646, "matcolours", "red-4", 0x99FF0000);
@@ -205,6 +216,8 @@ stock CreateCheckPoint(name[29] = "", CPType:type, Float:x, Float:y, Float:z, wo
 	}
 
 	new arr[32];
+
+	Iter_Add(Iter_CPS, id);
 
 	arr[0] = CP_STREAMER_IDENTIFIER;
 	strcat(arr, name);
@@ -219,8 +232,18 @@ stock DestroyCheckPoint( CPID)
 	DestroyDynamicArea(CPArea[CPID]);
 	DestroyDynamicObject(CPObject[CPID]);
 	Iter_Add(Iter_free, CPID);
+	Iter_Remove(Iter_CPS, CPID);
 }
-
+stock SetCPtoPos( CPID, Float:x=0.0, Float:y=0.0, Float:z=0.0)
+{
+	new obj= CPObject[CPID];
+	return SetDynamicObjectPos(obj, x, y, z);
+}
+stock MoveCPtoPos( CPID, Float:x=0.0, Float:y=0.0, Float:z=0.0, Float:speed= 2.0)
+{
+	new obj= CPObject[CPID];
+	return MoveDynamicObject(obj, x, y, z, speed);
+}
 stock AttachCPtoObject( CPID, objectid, Float:x=0.0, Float:y=0.0, Float:z=0.0)
 {
 	new obj= CPObject[CPID];
@@ -313,6 +336,78 @@ stock GetNexCPID()                        //capta o ID, do proximo CP a ser cria
     i_CountCP++;                         //Caso não haja CP deletados, ele cria um novo ID
     return  i_CountCP;
 }
+//-------------------------------------------------------------------------------------------------------------------------
+public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
+{
+	foreach(new CPID : Iter_CPS)
+	{
+		if(InCP[playerid][CPID])
+		{
+			new arr[32];
+			Streamer_GetArrayData(STREAMER_TYPE_AREA, AreaCP[CPID], E_STREAMER_EXTRA_ID, arr);
+			#if defined OnPlayerKeyStateChangeInCP
+				OnPlayerKeyStateChangeInCP(playerid, arr, CPID, newkeys, oldkeys);
+			#endif
+		} 
+	}
+	#if defined CP_OnPlayerKeyStateChange
+		return CP_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
+	#else
+		return 1;
+	#endif
+}
+#if defined _ALS_OnPlayerKeyStateChange
+	#undef OnPlayerKeyStateChange
+#else
+	#define _ALS_OnPlayerKeyStateChange
+#endif
+ 
+#define OnPlayerEnterDynamicArea CP_OnPlayerEnterDynamicArea
+#if defined CP_OnPlayerKeyStateChange
+	forward CP_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
+#endif
+#if defined OnPlayerKeyStateChangeInCP
+	forward OnPlayerKeyStateChangeInCP(playerid, name[], CPID, newkeys, oldkeys);
+#endif
+
+//-------------------------------------------------------------------------------------------------------------------------
+
+public OnPlayerText(playerid, text[])
+{
+	foreach(new CPID : Iter_CPS)
+	{
+		if(InCP[playerid][CPID])
+		{
+			new arr[32];
+			Streamer_GetArrayData(STREAMER_TYPE_AREA, AreaCP[CPID], E_STREAMER_EXTRA_ID, arr);
+
+			#if defined OnPlayerTextInCP
+				OnPlayerTextInCP(playerid, arr, CPID, text);
+			#endif
+		} 
+	}
+	#if defined CP_OnPlayerText
+		return CP_OnPlayerText(playerid, text);
+	#else
+		return 1;
+	#endif
+}
+#if defined _ALS_OnPlayerText
+	#undef OnPlayerText
+#else
+	#define _ALS_OnPlayerText
+#endif
+ 
+#define OnPlayerText CP_OnPlayerText
+#if defined CP_OnPlayerText
+	forward CP_OnPlayerText(playerid, text[]));
+#endif
+#if defined OnPlayerTextInCP
+	forward OnPlayerTextInCP(playerid, name[], CPID, text[]);
+#endif
+
+//-------------------------------------------------------------------------------------------------------------------------
+
 
 public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 {
@@ -320,8 +415,13 @@ public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 	Streamer_GetArrayData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID, arr);
 	if(arr[0] == CP_STREAMER_IDENTIFIER)
 	{
+		new CPID= AreaCP[areaid];
+		#pragma unused CPID
+
+		InCP[playerid][CPID]= true;
+
 		#if defined OnPlayerEnterCheckpointEx
-			OnPlayerEnterCheckpointEx(playerid, arr[1]);
+			OnPlayerEnterCheckpointEx(playerid, arr[1], CPID);
 		#endif
 		// !isnull
 		if(!(!(arr[1])) || (((arr[1]) == '\1') && (!(arr[2]))))
@@ -332,7 +432,7 @@ public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 		}	
 		return true;
 	}
-	#if defined cp_OnPlayerEnterDynamicArea
+	#if defined CP_OnPlayerEnterDynamicArea
 		return CP_OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid);
 	#else
 		return 1;
@@ -349,15 +449,20 @@ public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 	forward CP_OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid);
 #endif
 
-
+//-------------------------------------------------------------------------------------------------------------------------
 public OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 {
 	new arr[32];
 	Streamer_GetArrayData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID, arr);
 	if(arr[0] == CP_STREAMER_IDENTIFIER)
 	{
+		new CPID= AreaCP[areaid];
+		#pragma unused CPID
+
+		InCP[playerid][CPID]= false;
+
 		#if defined OnPlayerExitCheckpointEx
-			OnPlayerExitCheckpointEx(playerid, arr[1]);
+			OnPlayerExitCheckpointEx(playerid, arr[1], CPID);
 		#endif
 		// !isnull
 		if(!(!(arr[1])) || (((arr[1]) == '\1') && (!(arr[2]))))
@@ -371,7 +476,7 @@ public OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 		DestroyDynamicArea(areaid);		
 		return true;
 	}
-	#if defined cp_OnPlayerLeaveDynamicArea
+	#if defined CP_OnPlayerLeaveDynamicArea
 		return CP_OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid);
 	#else
 		return 1;
@@ -387,5 +492,5 @@ public OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 #if defined CP_OnPlayerLeaveDynamicArea
 	forward CP_OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid);
 #endif
-
+//-------------------------------------------------------------------------------------------------------------------------
 #endif //Final da include
