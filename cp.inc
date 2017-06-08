@@ -114,6 +114,7 @@ static Iterator:Iter_free<MAX_CPS>;
 static Iterator:Iter_CPS<MAX_CPS>;
 static i_CountCP;
 
+static CPType:CPmodel[MAX_CPS];			//Model do CP, salvado, para alteração de cores!
 static CPObject[MAX_CPS];               //CPID -> to -> dynamicObject
 static CPArea[MAX_CPS];					//CPID -> to -> AREAID
 static AreaCP[MAX_AREAS];				//AREAID -> to -> CPID
@@ -121,18 +122,9 @@ static AreaCP[MAX_AREAS];				//AREAID -> to -> CPID
 static bool:InCP[MAX_PLAYERS][MAX_CPS];				//Player está no CP
 
 enum CPType {
-	CP_ARROW_RED,
-	CP_ARROW_GREEN,
-	CP_ARROW_BLUE,
-	CP_ARROW_YELLOW,
-	CP_CIRCLE_RED_BIG,
-	CP_CIRCLE_GREEN_BIG,
-	CP_CIRCLE_BLUE_BIG,
-	CP_CIRCLE_RED,
-	CP_CIRCLE_ORANGE,
-	CP_CIRCLE_YELLOW,
-	CP_CIRCLE_GREEN,
-	CP_CIRCLE_BLUE,
+	CP_ARROW,
+	CP_CIRCLE_BIG,
+	CP_CIRCLE,
 	CP_INVISIBLE
 };
 
@@ -153,17 +145,8 @@ enum CPType {
 static CP_MODEL_DATA[CPType][E_CP_MODEL_DATA]=
 {
 	{19605, 1.0}, // CP_ARROW_RED
-	{19606, 1.0}, // CP_ARROW_GREEN
-	{19607, 1.0}, // CP_ARROW_BLUE
-	{19197, 1.0}, // CP_ARROW_YELLOW
 	{19945, 8.0}, // CP_CIRCLE_RED_BIG
-	{19946, 8.0}, // CP_CIRCLE_GREEN_BIG
-	{19947, 8.0}, // CP_CIRCLE_BLUE_BIG
 	{1317,	1.0}, // CP_CIRCLE_RED
-	{1317,	1.0}, // CP_CIRCLE_ORANGE
-	{1317,	1.0}, // CP_CIRCLE_YELLOW
-	{1317,	1.0}, // CP_CIRCLE_GREEN
-	{1317,	1.0}, // CP_CIRCLE_BLUE
 	{19300,	1.0}  // CP_INVISIBLE
 };
 
@@ -175,14 +158,14 @@ static CP_MODEL_DATA[CPType][E_CP_MODEL_DATA]=
 	forward OnPlayerExitCheckpointEx(playerid, checkpoint[], CPID);
 #endif
 
-stock CreatePlayerCheckPoint(playerid, name[29] = "", CPType:type, Float:x, Float:y, Float:z, worldid = -1, interiorid = -1)
+stock CreatePlayerCheckPoint(playerid, name[29] = "", CPType:type= CP_CIRCLE, color= 0x99FF0000, Float:x, Float:y, Float:z, worldid = -1, interiorid = -1)
 {
 	return CreateCheckPoint(name, type, x, y, z, worldid, interiorid, playerid);
 }
 
-stock CreateCheckPoint(name[29] = "", CPType:type, Float:x, Float:y, Float:z, worldid = -1, interiorid = -1, forplayer= -1)
+stock CreateCheckPoint(name[29] = "", CPType:type = CP_CIRCLE, color= 0x99FF0000, Float:x, Float:y, Float:z, worldid = -1, interiorid = -1, forplayer= -1)
 {
-	if(!(CP_ARROW_RED <= type <= CP_INVISIBLE))
+	if(!(CP_ARROW <= type <= CP_INVISIBLE))
 		return INVALID_CP;
 
 	if(forplayer != -1)
@@ -193,23 +176,20 @@ stock CreateCheckPoint(name[29] = "", CPType:type, Float:x, Float:y, Float:z, wo
 
 	new id= GetNexCPID();
 
-	if(type == CP_ARROW_YELLOW) z += 1.4;
-	if(CP_CIRCLE_RED <= type <= CP_CIRCLE_BLUE) z -= 0.4;
+	if(CP_CIRCLE == type) z -= 0.4;
 
+	CPmodel[id]=type;
 
 	new object= CPObject[id]= 	CreateDynamicObject(CP_MODEL_DATA[type][CP_Model], x, y, z, 0.0, 0.0, 0.0, worldid, interiorid, forplayer);
 	new area=	CPArea[id]= 	CreateDynamicSphere(x, y, z, CP_MODEL_DATA[type][CP_ModelSize], worldid, interiorid, forplayer);
 
 	AreaCP[area]= id;
 
-	switch(type)
-	{
-		case CP_CIRCLE_RED:		SetDynamicObjectMaterial(object, 0, 18646, "matcolours", "red-4", 0x99FF0000);
-		case CP_CIRCLE_ORANGE:	SetDynamicObjectMaterial(object, 0, 18646, "matcolours", "orange", 0x99FF8000);
-		case CP_CIRCLE_YELLOW:	SetDynamicObjectMaterial(object, 0, 18646, "matcolours", "yellow", 0x99FFFF00);
-		case CP_CIRCLE_GREEN:	SetDynamicObjectMaterial(object, 0, 18646, "matcolours", "green", 0x99008000);
-		case CP_CIRCLE_BLUE:	SetDynamicObjectMaterial(object, 0, 18646, "matcolours", "blue", 0x990000FF);
-	}
+	if(CP_CIRCLE ==type)
+		SetDynamicObjectMaterial(object, 0, 18646, "matcolours", "white", color);
+	else
+		SetDynamicObjectMaterialText(object, 0, " ", OBJECT_MATERIAL_SIZE_32x32,"Arial", 8, 1, 0x55555555, color);
+	
 
 	new arr[32];
 
@@ -260,7 +240,17 @@ stock AttachCPtoCP( CPID, CPattached, Float:x=0.0, Float:y=0.0, Float:z=0.0)
 	new obj= CPObject[CPID];
 	return AttachDynamicObjectToObject(obj, CPObject[CPattached], x, y, z, 0.0, 0.0, 0.0);
 }
-
+stock SetCheckPointColor(CPID, color=0x99FF0000)
+{
+	if(CP_CIRCLE == CPmodel[CPID])
+		SetDynamicObjectMaterial(object, 0, 18646, "matcolours", "white", color);
+	else
+		SetDynamicObjectMaterialText(object, 0, " ", OBJECT_MATERIAL_SIZE_32x32,"Arial", 8, 1, 0x55555555, color);
+}
+stock bool:IsPlayerInCP(playerid, CPID)
+{
+	return InCP[playerid][CPID];
+}
 stock IsPlayerInAnyCheckpointEx(playerid)
 {
 	static STREAMER_TAG_AREA areas[500];
@@ -333,6 +323,7 @@ stock GetNexCPID()                        //capta o ID, do proximo CP a ser cria
     return  i_CountCP;
 }
 //-------------------------------------------------------------------------------------------------------------------------
+#if defined OnPlayerKeyStateChangeInCP
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 {
 	foreach(new CPID : Iter_CPS)
@@ -366,8 +357,9 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 	forward OnPlayerKeyStateChangeInCP(playerid, name[], CPID, newkeys, oldkeys);
 #endif
 
+#endif
 //-------------------------------------------------------------------------------------------------------------------------
-
+#if defined OnPlayerTextInCP
 public OnPlayerText(playerid, text[])
 {
 	foreach(new CPID : Iter_CPS)
@@ -402,6 +394,7 @@ public OnPlayerText(playerid, text[])
 	forward OnPlayerTextInCP(playerid, name[], CPID, text[]);
 #endif
 
+#endif
 //-------------------------------------------------------------------------------------------------------------------------
 
 
@@ -467,7 +460,6 @@ public OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 			strins(arr[1], "p2_", 0);
 			CallLocalFunction(arr, "d", playerid);
 		}
-		new obj = Streamer_GetIntData(STREAMER_TYPE_AREA, areaid, E_STREAMER_ATTACHED_OBJECT);
 		return true;
 	}
 	#if defined CP_OnPlayerLeaveDynamicArea
