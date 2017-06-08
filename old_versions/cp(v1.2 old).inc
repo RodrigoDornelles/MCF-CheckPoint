@@ -47,9 +47,9 @@ new CP_AREACP[MAX_OBJECTS];											//armazena o id do checkpoint em tal area
 
 new i_CPCOUNT;														//conta quantos checkpoints foram criados
 new i_CPOBJECT[MAX_CPS];											//Objeto se comporta como entidade do CP
-new i_CPAREA[MAX_CPS];												//Area de interação do CP utilza streamer
+new i_CPAREA[MAX_CPS];												//Area de interaÃ§Ã£o do CP utilza streamer
 
-new i_CPINFOS[MAX_CPS][MAX_CP_INFO];								//Armazena informações importantes dos checkpoints
+new i_CPINFOS[MAX_CPS][MAX_CP_INFO];								//Armazena informaÃ§Ãµes importantes dos checkpoints
 
 new bool:i_PlayerInCP[MAX_PLAYERS][MAX_CPS];
 //------------------------------------------------------------------
@@ -251,7 +251,7 @@ public i_OnPlayerCPchange(playerid, areaid, toggle)
 	}
 	else
 	{																	//new v2
-		if(i_PlayerInCP[playerid][id] == false) return 0;				//Correção de BUG-> players passando por baixo do CP chamacallback
+		if(i_PlayerInCP[playerid][id] == false) return 0;				//CorreÃ§Ã£o de BUG-> players passando por baixo do CP chamacallback
 		CallRemoteFunction("OnPlayerLeaveCP","ii",playerid,id);
 		i_PlayerInCP[playerid][id]=false;
 	}
