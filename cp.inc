@@ -162,7 +162,7 @@ static CP_MODEL_DATA[CPType][E_CP_MODEL_DATA]=
 #endif
 
 #if defined OnCheckpointStreamIn
-	forward OnPlayerExitCheckpointEx(playerid, checkpoint[], CPID);
+	forward OnCheckpointStreamIn(playerid, checkpoint[], CPID);
 #endif
 
 #if defined OnCheckpointStreamOut
