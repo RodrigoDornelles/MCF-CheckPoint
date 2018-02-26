@@ -62,7 +62,6 @@ AGE:		19
  	- 
 ## Configuration:
  */
-
 #if !defined MCF_CP_VERSION 					
 
 //-----------STREAMER Required-------------
@@ -94,7 +93,7 @@ AGE:		19
 #endif
 #define mCP_included
 
-#define CP_STREAMER_IDENTIFIER 2147483646
+#define CP_STREAMER_IDENTIFIER 0xA7 	// §
 
 #define CPEnter:%0(%1) forward cp1_%0(%1);public cp1_%0(%1)
 #define CPExit:%0(%1)  forward cp2_%0(%1);public cp2_%0(%1)
@@ -104,8 +103,12 @@ AGE:		19
     #define MAX_CPS (500)
 #endif
 
-#if !defined MAX_AREAS
-    #define MAX_AREAS (1000)
+#if !defined MAX_AREASCP
+    #define MAX_AREASCP (1000)
+#endif
+
+#if !defined CP_Z_FIZ
+    #define CP_Z_FIZ 0.5
 #endif
 
 #define INVALID_CP -1
@@ -117,7 +120,7 @@ static i_CountCP;
 static CPType:CPmodel[MAX_CPS];			//Model do CP, salvado, para alteração de cores!
 static CPObject[MAX_CPS];               //CPID -> to -> dynamicObject
 static CPArea[MAX_CPS];					//CPID -> to -> AREAID
-static AreaCP[MAX_AREAS];				//AREAID -> to -> CPID
+static AreaCP[MAX_AREASCP];				//AREAID -> to -> CPID
 
 static bool:InCP[MAX_PLAYERS][MAX_CPS];				//Player está no CP
 
@@ -158,12 +161,23 @@ static CP_MODEL_DATA[CPType][E_CP_MODEL_DATA]=
 	forward OnPlayerExitCheckpointEx(playerid, checkpoint[], CPID);
 #endif
 
-stock CreatePlayerCheckPoint(playerid, name[29] = "", CPType:type= CP_CIRCLE, color= 0x99FF0000, Float:x, Float:y, Float:z, worldid = -1, interiorid = -1)
+#if defined OnCheckpointStreamIn
+	forward OnPlayerExitCheckpointEx(playerid, checkpoint[], CPID);
+#endif
+
+#if defined OnCheckpointStreamOut
+	forward OnCheckpointStreamOut(playerid, checkpoint[], CPID);
+#endif
+
+#if defined OnCheckpointCreate
+	forward OnCheckpointCreate(name[29], CPType:type, color, Float:x, Float:y, Float:z, worldid, interiorid, forplayer);
+#endif
+stock CreatePlayerCheckPoint(playerid, name[29] = "", CPType:type= CP_CIRCLE, color= 0x99FF0000, Float:x=0.0, Float:y=0.0, Float:z=0.0, worldid = -1, interiorid = -1)
 {
 	return CreateCheckPoint(name, type, x, y, z, worldid, interiorid, playerid);
 }
 
-stock CreateCheckPoint(name[29] = "", CPType:type = CP_CIRCLE, color= 0x99FF0000, Float:x, Float:y, Float:z, worldid = -1, interiorid = -1, forplayer= -1)
+stock CreateCheckPoint(name[29] = "", CPType:type = CP_CIRCLE, color= 0x99FF0000, Float:x=0.0, Float:y=0.0, Float:z=0.0, worldid = -1, interiorid = -1, forplayer= -1)
 {
 	if(!(CP_ARROW <= type <= CP_INVISIBLE))
 		return INVALID_CP;
@@ -176,11 +190,16 @@ stock CreateCheckPoint(name[29] = "", CPType:type = CP_CIRCLE, color= 0x99FF0000
 
 	new id= GetNexCPID();
 
+	#if defined OnCheckpointCreate
+		if(!OnCheckpointCreate(name[29], CPType:type = CP_CIRCLE, color, Float:x, Float:y, Float:z, worldid, interiorid, forplayer))
+			return DestroyCheckPoint(id);//caso retornar 0, o checkpoint não sera criado!
+	#endif
+
 	if(CP_CIRCLE == type) z -= 0.4;
 
 	CPmodel[id]=type;
 
-	new object= CPObject[id]= 	CreateDynamicObject(CP_MODEL_DATA[type][CP_Model], x, y, z, 0.0, 0.0, 0.0, worldid, interiorid, forplayer);
+	new object= CPObject[id]= 	CreateDynamicObject(CP_MODEL_DATA[type][CP_Model], x, y, z - CP_Z_FIZ, 0.0, 0.0, 0.0, worldid, interiorid, forplayer);
 	new area=	CPArea[id]= 	CreateDynamicSphere(x, y, z, CP_MODEL_DATA[type][CP_ModelSize], worldid, interiorid, forplayer);
 
 	AreaCP[area]= id;
@@ -195,25 +214,58 @@ stock CreateCheckPoint(name[29] = "", CPType:type = CP_CIRCLE, color= 0x99FF0000
 
 	Iter_Add(Iter_CPS, id);
 
-	arr[0] = CP_STREAMER_IDENTIFIER;
-	strcat(arr, name);
-
+	format(arr, 32, "%c%s", CP_STREAMER_IDENTIFIER, name);
 	Streamer_SetArrayData(STREAMER_TYPE_AREA, area, E_STREAMER_EXTRA_ID, arr);
 
 	AttachDynamicAreaToObject(area, object);
 	return id;
 }
+//------------------names---------------------------------
+stock GetCPName( CPID)
+{
+	new arr[32]="";
+	Streamer_GetArrayData(STREAMER_TYPE_AREA, AreaCP[CPID], E_STREAMER_EXTRA_ID, arr);
+	return arr;
+}
+stock SetNameCP(CPID, name[])
+{
+	new arr[32];
+	format(arr, 32, "%c%s", CP_STREAMER_IDENTIFIER, name);
+	Streamer_SetArrayData(STREAMER_TYPE_AREA, area, E_STREAMER_EXTRA_ID, arr);
+}
+stock RenameCP(oldname[], newname[])
+{
+	new arr[32],name[32];
+	format(name, 32, "%c%s", CP_STREAMER_IDENTIFIER, name)
+
+	for(new STREAMER_TAG_AREA i; i < num; ++i)
+	{
+		Streamer_GetArrayData(STREAMER_TYPE_AREA, i, E_STREAMER_EXTRA_ID, arr);
+		if(arr[0] == CP_STREAMER_IDENTIFIER)
+		{
+			// isnull
+			if((!(arr[1])) || (((arr[1]) == '\1') && (!(arr[2]))))
+				continue;
+
+			strdel(arr, 0, 1);
+			if(!strcmp(arr, oldname)
+				Streamer_SetArrayData(STREAMER_TYPE_AREA, i, E_STREAMER_EXTRA_ID, name);
+		}
+	}
+}
+//-------------------------------------------------------------
 stock DestroyCheckPoint( CPID)
 {
 	DestroyDynamicArea(CPArea[CPID]);
 	DestroyDynamicObject(CPObject[CPID]);
 	Iter_Add(Iter_free, CPID);
 	Iter_Remove(Iter_CPS, CPID);
+	return INVALID_CP;
 }
 stock SetCPtoPos( CPID, Float:x=0.0, Float:y=0.0, Float:z=0.0)
 {
 	new obj= CPObject[CPID];
-	return SetDynamicObjectPos(obj, x, y, z);
+	return SetDynamicObjectPos(obj, x, y, z - CP_Z_FIZ);
 }
 stock MoveCPtoPos( CPID, Float:x=0.0, Float:y=0.0, Float:z=0.0, Float:speed= 2.0)
 {
@@ -223,22 +275,22 @@ stock MoveCPtoPos( CPID, Float:x=0.0, Float:y=0.0, Float:z=0.0, Float:speed= 2.0
 stock AttachCPtoObject( CPID, objectid, Float:x=0.0, Float:y=0.0, Float:z=0.0)
 {
 	new obj= CPObject[CPID];
-	return AttachDynamicObjectToObject(obj, objectid, x, y, z, 0.0, 0.0, 0.0);
+	return AttachDynamicObjectToObject(obj, objectid, x, y, z - CP_Z_FIZ, 0.0, 0.0, 0.0);
 }
 stock AttachCPtoPlayer( CPID, playerid, Float:x=0.0, Float:y=0.0, Float:z=0.0)
 {
 	new obj= CPObject[CPID];
-	return AttachDynamicObjectToPlayer(obj, playerid, x, y, z, 0.0, 0.0, 0.0);
+	return AttachDynamicObjectToPlayer(obj, playerid, x, y, z - CP_Z_FIZ, 0.0, 0.0, 0.0);
 }
 stock AttachCPtoVehicle( CPID, vehicleid, Float:x=0.0, Float:y=0.0, Float:z=0.0)
 {
 	new obj= CPObject[CPID];
-	return AttachDynamicObjectToVehicle(obj, vehicleid, x, y, z, 0.0, 0.0, 0.0);
+	return AttachDynamicObjectToVehicle(obj, vehicleid, x, y, z - CP_Z_FIZ, 0.0, 0.0, 0.0);
 }
 stock AttachCPtoCP( CPID, CPattached, Float:x=0.0, Float:y=0.0, Float:z=0.0)
 {
 	new obj= CPObject[CPID];
-	return AttachDynamicObjectToObject(obj, CPObject[CPattached], x, y, z, 0.0, 0.0, 0.0);
+	return AttachDynamicObjectToObject(obj, CPObject[CPattached], x, y, z - CP_Z_FIZ, 0.0, 0.0, 0.0);
 }
 stock SetCheckPointColor(CPID, color=0x99FF0000)
 {
@@ -293,7 +345,9 @@ stock IsPlayerInCheckpointEx(playerid, name[])
 			if((!(arr[1])) || (((arr[1]) == '\1') && (!(arr[2]))))
 				continue;
 
-			if(!strcmp(arr[1], name))
+			strdel(arr, 0, 1);
+
+			if(!strcmp(arr, name))
 				return true;
 		}
 	}
@@ -332,6 +386,9 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 		{
 			new arr[32];
 			Streamer_GetArrayData(STREAMER_TYPE_AREA, AreaCP[CPID], E_STREAMER_EXTRA_ID, arr);
+
+			strdel(arr, 0, 1);
+
 			#if defined OnPlayerKeyStateChangeInCP
 				OnPlayerKeyStateChangeInCP(playerid, arr, CPID, newkeys, oldkeys);
 			#endif
@@ -369,6 +426,8 @@ public OnPlayerText(playerid, text[])
 			new arr[32];
 			Streamer_GetArrayData(STREAMER_TYPE_AREA, AreaCP[CPID], E_STREAMER_EXTRA_ID, arr);
 
+			strdel(arr, 0, 1);
+
 			#if defined OnPlayerTextInCP
 				OnPlayerTextInCP(playerid, arr, CPID, text);
 			#endif
@@ -400,24 +459,26 @@ public OnPlayerText(playerid, text[])
 
 public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 {
+	OnPlayerEnterDynArea(playerid, areaid);
 	new arr[32];
 	Streamer_GetArrayData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID, arr);
 	if(arr[0] == CP_STREAMER_IDENTIFIER)
 	{
-		new CPID= AreaCP[areaid];
-		#pragma unused CPID
+		strdel(arr, 0, 1);
 
+		new CPID= AreaCP[areaid];
+		
 		InCP[playerid][CPID]= true;
 
 		#if defined OnPlayerEnterCheckpointEx
-			OnPlayerEnterCheckpointEx(playerid, arr[1], CPID);
+			if(!OnPlayerEnterCheckpointEx(playerid, arr, CPID))
+				return 1;//não chamar processador!
 		#endif
 		// !isnull
 		if(!(!(arr[1])) || (((arr[1]) == '\1') && (!(arr[2]))))
 		{
-			arr[0] = 'c';
-			strins(arr[1], "p1_", 0);
-			CallLocalFunction(arr, "d", playerid);
+			strins(arr, "cp1_", 0);
+			CallLocalFunction(arr, "d", playerid, CPID);
 		}	
 		return true;
 	}
@@ -441,23 +502,25 @@ public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 //-------------------------------------------------------------------------------------------------------------------------
 public OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 {
+	OnPlayerleaveDynArea(playerid, areaid);
 	new arr[32];
 	Streamer_GetArrayData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID, arr);
 	if(arr[0] == CP_STREAMER_IDENTIFIER)
 	{
-		new CPID= AreaCP[areaid];
-		#pragma unused CPID
+		strdel(arr, 0, 1);
 
+		new CPID= AreaCP[areaid];
+		
 		InCP[playerid][CPID]= false;
 
 		#if defined OnPlayerExitCheckpointEx
-			OnPlayerExitCheckpointEx(playerid, arr[1], CPID);
+			if(!OnPlayerExitCheckpointEx(playerid, arr, CPID))
+				return 1;//não chama processador
 		#endif
 		// !isnull
 		if(!(!(arr[1])) || (((arr[1]) == '\1') && (!(arr[2]))))
 		{
-			arr[0] = 'c';
-			strins(arr[1], "p2_", 0);
+			strins(arr, "cp2_", 0);
 			CallLocalFunction(arr, "d", playerid);
 		}
 		return true;
