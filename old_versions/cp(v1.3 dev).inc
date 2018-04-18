@@ -63,13 +63,13 @@ public MCF_CP_VERSION = 0x00003;
 	#define CP_DEBUG 0
 #endif
 
-#define INVALID_CP 		-1
+#define INVALID_CP	-1
 
 #define CP_RED_SMALLL 	0
 #define CP_GREEN_SMALL	1
 #define CP_BLUE_SMALL	3
 #define CP_YELLOW_SMALL 4
-#define CP_RED_BIG		5
+#define CP_RED_BIG	5
 #define CP_GREEN_BIG 	6
 #define CP_BLUE_BIG 	7 
 
@@ -86,19 +86,19 @@ enum MAX_CP_INFO
 }
 
 //---------------------[VARIABLES]----------------------------------
-new bool:i_AreaIsCP[MAX_OBJECTS];									//verifica se area pertence ao checkpoint
-new i_AreaCP[MAX_OBJECTS];											//armazena o id do checkpoint em tal area									
-
+static
+	bool:i_AreaIsCP[MAX_OBJECTS],//verifica se area pertence ao checkpoint
+	i_AreaCP[MAX_OBJECTS], //armazena o id do checkpoint em tal area									
 													
-new i_ObjCP[MAX_CPS];												//Objeto se comporta como entidade do CP
-new i_CPAREA[MAX_CPS];												//Area de interação do CP utilza streamer
+	i_ObjCP[MAX_CPS], //Objeto se comporta como entidade do CP
+	i_CPAREA[MAX_CPS], //Area de interação do CP utilza streamer
 
-new i_CPINFOS[MAX_CPS][MAX_CP_INFO];								//Armazena informações importantes dos checkpoints
+	i_CPINFOS[MAX_CPS][MAX_CP_INFO], //Armazena informações importantes dos checkpoints
 
-new i_CountCP;														//conta quantos checkpoints foram criados
-new Iterator:i_GenEmptyID<MAX_CPS>;									//Armazenar ids vazios, derivados de CP deletados
+	i_CountCP, //conta quantos checkpoints foram criados
+	Iterator:i_GenEmptyID<MAX_CPS>, //Armazenar ids vazios, derivados de CP deletados
 
-new bool:i_PlayerInCP[MAX_PLAYERS][MAX_CPS];
+	bool:i_PlayerInCP[MAX_PLAYERS][MAX_CPS];
 //------------------------------------------------------------------
 
 forward OnPlayerCPchange(playerid, CPID, toggle);
