@@ -147,10 +147,10 @@ enum CPType {
 
 static CP_MODEL_DATA[CPType][E_CP_MODEL_DATA]=
 {
-	{19605, 1.0}, // CP_ARROW_RED
-	{19945, 8.0}, // CP_CIRCLE_RED_BIG
-	{1317,	1.0}, // CP_CIRCLE_RED
-	{19300,	1.0}  // CP_INVISIBLE
+	{19605, 1.3}, // CP_ARROW_RED
+	{19945, 9.0}, // CP_CIRCLE_RED_BIG
+	{1317,	1.3}, // CP_CIRCLE_RED
+	{19300,	1.3}  // CP_INVISIBLE
 };
 
 #if defined OnPlayerEnterCheckpointEx
@@ -162,7 +162,7 @@ static CP_MODEL_DATA[CPType][E_CP_MODEL_DATA]=
 #endif
 
 #if defined OnCheckpointStreamIn
-	forward OnCheckpointStreamIn(playerid, checkpoint[], CPID);
+	forward OnPlayerExitCheckpointEx(playerid, checkpoint[], CPID);
 #endif
 
 #if defined OnCheckpointStreamOut
@@ -368,9 +368,9 @@ stock GetNexCPID()                        //capta o ID, do proximo CP a ser cria
     	Iter_Remove(Iter_free, free);
         return free;
     }
-    if(i_CountCP + 1 == MAX_CPS)
+    if(i_CountCP == MAX_CPS)
     {
-        printf("[ERROR] max checkpoints loaded %d/%d", i_CountCP + 1, MAX_CPS);
+        printf("[ERROR] max checkpoints loaded %d/%d", i_CountCP, MAX_CPS);
         return INVALID_CP;
     }
     i_CountCP++;                         //Caso não haja CP deletados, ele cria um novo ID
