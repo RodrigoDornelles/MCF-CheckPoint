@@ -89,7 +89,11 @@ alem de podem ter cores diferentes, e ser anexado, entre outras funcionalidades!
 #define INTERNAL_CIRCLE_BIG		0001								//CP_CIRCLE_BIG
 #define INTERNAL_CIRCLE 		0002								//CP_CIRCLE
 #define INTERNAL_INVISIBLE		0003								//CP_INVISIBLE	
-                      												
+                     
+#if !defined DEFAULT_CP_MODE              							//
+    #define DEFAULT_CP_MODE		CP_MODE_CYLINDER					//CP_MODE
+#endif																//
+
 #if !defined MCFCP_DEBUG                  							//
     #define MCFCP_DEBUG	 		false								//debug mode default
 #endif																//
@@ -155,11 +159,11 @@ static MCF_MODELSIZES[4][ENUM_MCF_SIZES]=
 	{19300,		0.0,	0.0}  // CP_INVISIBLE
 };
 
-static MCF_GlobalInfo[ENUM_MCF_GLOBAL]={MCFCP_DEBUG,1,0};	//Global 		Var
-static MCF_CPInfo[MAX_MCFCPS][ENUM_MCF_CP];					//Per CP 		Var
-static MCF_AreaInfo[MAX_MCFAREAS][ENUM_MCF_AREA];			//Per Area 	 	Var
-static MCF_PlayerInfo[MAX_PLAYERS][ENUM_MCF_PLAYER];		//Per Player 	Var
-static bool:MCF_PlayerInCP[MAX_PLAYERS][MAX_MCFCPS];		//Per Player 	Var
+static MCF_GlobalInfo[ENUM_MCF_GLOBAL]={MCFCP_DEBUG,DEFAULT_CP_MODE,0};	//Global 		Var
+static MCF_CPInfo[MAX_MCFCPS][ENUM_MCF_CP];								//Per CP 		Var
+static MCF_AreaInfo[MAX_MCFAREAS][ENUM_MCF_AREA];						//Per Area 	 	Var
+static MCF_PlayerInfo[MAX_PLAYERS][ENUM_MCF_PLAYER];					//Per Player 	Var
+static bool:MCF_PlayerInCP[MAX_PLAYERS][MAX_MCFCPS];					//Per Player 	Var
 
 //================================================================================================
 //Features:
@@ -245,11 +249,11 @@ MCF_INTERNAL GetMCFModelType(t)
 		return MCF_MODELSIZES[t][CPZ_Model];
 	return MCF_MODELSIZES[0][CPZ_Model];
 }
-MCF_INTERNAL GetMCFSizeType(t)
+MCF_INTERNAL Float:GetMCFSizeType(t)
 {
 	if(0 < t < 4)
-		return _:MCF_MODELSIZES[t][CPZ_Cylinder];
-	return _:MCF_MODELSIZES[0][CPZ_Cylinder];
+		return MCF_MODELSIZES[t][CPZ_Cylinder];
+	return MCF_MODELSIZES[0][CPZ_Cylinder];
 }
 MCF_INTERNAL SetCylinderFix(areaid, t, Float:z)
 {
@@ -301,9 +305,11 @@ stock CreateCheckPoint(name[29] = "", Float:type = CP_CIRCLE, color= 0x99FF0000,
 	if(CPID == INVALID_CP)					//Player not conected
 		return INVALID_CP;					//Player not conected
 
-	if(MCF_CallExist("OnCheckpointCreate"))
-		if(!CallLocalFunction("OnCheckpointCreate","dsddfffddd",CPID,name, IT, color, x, y,z, worldid, interiorid, forplayer))
-			return DestroyCheckPoint(CPID); //returning 0 destroy the checkpoint
+	//if(funcidx("OnCheckpointCreate")!=-1)
+	//	if(!CallLocalFunction("OnCheckpointCreate","dsddfffddd",CPID,name, IT, color, x, y,z, worldid, interiorid, forplayer))
+	//		return DestroyCheckPoint(CPID); //returning 0 destroy the checkpoint
+
+	//printf("OCPC -> %d", funcidx("OnCheckpointCreate"));
 
 	new obj, 	//objectid
 		mdl, 	//Modelid
@@ -563,21 +569,22 @@ public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 
 		strdel(arr, 0, 1);
 
-		new CPID= MCF_AreaInfo[areaid][CPA_CPId];
+		new CPID=	MCF_AreaInfo[areaid][CPA_CPId];
 		
 		MCF_PlayerInCP[playerid][CPID]=true;
 		MCF_PlayerInfo[playerid][CPP_InAnyCP]=true;		
 
-		if(MCF_CallExist("OnPlayerEnterCheckpointEx"))
-			if(!CallLocalFunction("OnPlayerEnterCheckpointEx","dsd",playerid, arr, CPID))
-				return 1;//não chamar processador!
+		//if(funcidx("OnPlayerEnterCheckpointEx")!=-1)
+		//	if(!CallLocalFunction("OnPlayerEnterCheckpointEx","dsd",playerid, arr, CPID))
+		//		return 1;//não chamar processador!
 		
 		// !isnull
 		if(!(!(arr[1])) || (((arr[1]) == '\1') && (!(arr[2]))))
 		{
 			strins(arr, "cp1_", 0);
-				if(MCF_CallExist(arr))
-					CallLocalFunction(arr, "d", playerid, CPID);
+				if(funcidx(arr)!=-1)
+					CallLocalFunction(arr, "dd", playerid, CPID);
+			printf("CPEnter: %s(%d, %d)", arr, playerid, CPID);
 		}	
 		return true;
 	}
@@ -622,16 +629,16 @@ public OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 			break;
 		}
 
-		if(MCF_CallExist("OnPlayerExitCheckpointEx"))
-			if(!CallLocalFunction("OnPlayerExitCheckpointEx","dsd",playerid, arr, CPID))
-				return 1;//não chamar processador!
+		//if(funcidx("OnPlayerExitCheckpointEx")!=-1)
+		//	if(!CallLocalFunction("OnPlayerExitCheckpointEx","dsd",playerid, arr, CPID))
+		//		return 1;//não chamar processador!
 
 		// !isnull
 		if(!(!(arr[1])) || (((arr[1]) == '\1') && (!(arr[2]))))
 		{
 			strins(arr, "cp2_", 0);
-				if(MCF_CallExist(arr))
-					CallLocalFunction(arr, "d", playerid, CPID);
+				if(funcidx(arr)!=-1)
+					CallLocalFunction(arr, "dd", playerid, CPID);
 		}
 		return true;
 	}
