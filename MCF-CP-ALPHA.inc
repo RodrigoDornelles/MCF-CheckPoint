@@ -1,4 +1,4 @@
-  /*
+/*
 
 *************************************
 **** MULTI COLERED FUNCTIONAL CP ****
@@ -68,7 +68,7 @@ alem de podem ter cores diferentes, e ser anexado, entre outras funcionalidades!
 #define MCF_INTERNAL%0(%1)	forward%0(%1);public%0(%1)				//for internal functions	
 #define MCF_Print(%0)		if(MCF_GlobalInfo[CP_Debug])printf(%0)	//Debug Printf
 #define MCF_ERROR(%0?%1)	if(%0)printf(%1)						//Error PrintF	
-#define MCF_CallExist(%0) 	(funcidx(%0)!=1)						//Verify Callback
+#define MCF_CallExist(%0) 	(funcidx(%0)!=-1)						//Verify Callback
 #define MCF_Callback												//List Callbacks
 #define MCF_Function												//List Functions
 //------------------------------------------
@@ -302,7 +302,7 @@ stock CreateCheckPoint(name[29] = "", Float:type = CP_CIRCLE, color= 0x99FF0000,
 		return INVALID_CP;					//Player not conected
 
 	if(MCF_CallExist("OnCheckpointCreate"))
-		if(CallLocalFunction("OnCheckpointCreate","dsddfffddd",CPID,name, IT, color, x, y,z, worldid, interiorid, forplayer))
+		if(!CallLocalFunction("OnCheckpointCreate","dsddfffddd",CPID,name, IT, color, x, y,z, worldid, interiorid, forplayer))
 			return DestroyCheckPoint(CPID); //returning 0 destroy the checkpoint
 
 	new obj, 	//objectid
