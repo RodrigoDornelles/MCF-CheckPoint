@@ -658,4 +658,4 @@ public OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 #if defined CP_OnPlayerLeaveDynamicArea
 	forward CP_OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid);
 #endif
-//-------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------
