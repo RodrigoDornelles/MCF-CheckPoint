@@ -63,7 +63,7 @@ alem de podem ter cores diferentes, e ser anexado, entre outras funcionalidades!
 //------------------------------------------
 #define CPEnter:%0(%1) 		forward cp1_%0(%1);public cp1_%0(%1)	//on player enter CP
 #define CPExit:%0(%1)  		forward cp2_%0(%1);public cp2_%0(%1)	//on player exit CP
-#define CPPresKey:%0(%1) 	forward cp3_%0(%1);public cp3_%0(%1)	//on Player pres key in CP
+#define CPKeys:%0(%1) 		forward cp3_%0(%1);public cp3_%0(%1)	//on Player pres key in CP
 #define CPText:%0(%1) 		forward cp4_%0(%1);public cp4_%0(%1)	//On Player CMD in CP
 #define MCF_INTERNAL%0(%1)	forward%0(%1);public%0(%1)				//for internal functions	
 #define MCF_Print(%0)		if(MCF_GlobalInfo[CP_Debug])printf(%0)	//Debug Printf
@@ -83,7 +83,7 @@ alem de podem ter cores diferentes, e ser anexado, entre outras funcionalidades!
 #define CP_ARROW 				Float:0xFFFFF1						//TYPE 
 #define	CP_CIRCLE_BIG			Float:0xFFFFF2						//TYPE
 #define	CP_CIRCLE 				Float:0xFFFFF3						//TYPE
-#define	CP_INVISIBLE 			Float:								//TYPE:size
+#define	CP_INVISIBLE: 			Float:								//TYPE:size
 
 #define INTERNAL_ARROW			0000								//CP_ARROW 
 #define INTERNAL_CIRCLE_BIG		0001								//CP_CIRCLE_BIG
@@ -305,11 +305,11 @@ stock CreateCheckPoint(name[29] = "", Float:type = CP_CIRCLE, color= 0x99FF0000,
 	if(CPID == INVALID_CP)					//Player not conected
 		return INVALID_CP;					//Player not conected
 
-	//if(funcidx("OnCheckpointCreate")!=-1)
-	//	if(!CallLocalFunction("OnCheckpointCreate","dsddfffddd",CPID,name, IT, color, x, y,z, worldid, interiorid, forplayer))
-	//		return DestroyCheckPoint(CPID); //returning 0 destroy the checkpoint
+	if(funcidx("OnCheckpointCreate")!=-1)
+		if(!CallLocalFunction("OnCheckpointCreate","dsddfffddd",CPID,name, IT, color, x, y,z, worldid, interiorid, forplayer))
+			return DestroyCheckPoint(CPID); //returning 0 destroy the checkpoint
 
-	//printf("OCPC -> %d", funcidx("OnCheckpointCreate"));
+	printf("CP Create-> %d", CPID);
 
 	new obj, 	//objectid
 		mdl, 	//Modelid
@@ -317,7 +317,7 @@ stock CreateCheckPoint(name[29] = "", Float:type = CP_CIRCLE, color= 0x99FF0000,
 		arr[32],//Streamer extra ID
 		Float:size;
 
-	z-= 	INTERNAL_CIRCLE != IT ? CP_Z_FIX : CP_Z_FIX * CP_Z_FIX;
+	z-= 	INTERNAL_CIRCLE != IT ? CP_Z_FIX : (CP_Z_FIX * CP_Z_FIX) + 0.4;
 	mdl=	GetMCFModelType(IT);
 	size=	GetMCFSizeType(IT);
 
@@ -477,22 +477,24 @@ stock IsPlayerInCheckpointEx(playerid, name[])
 }
 */
 //-------------------------------------------------------------------------------------------------------------------------
-#if defined OnPlayerKeyStateChangeInCP
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 {
-	foreach(new CPID : Iter_CPS)
+	if(IsPlayerInAnyCheckpointEx(playerid))
 	{
-		if(InCP[playerid][CPID])
+		for(new CPID=1; CPID <= CPCount(); CPID++)
 		{
+			if(!IsCPEnabled(CPID))
+				continue;
+
+			if(!MCF_PlayerInCP[playerid][CPID])
+				continue;	
+
 			new arr[32];
-			Streamer_GetArrayData(STREAMER_TYPE_AREA, AreaCP[CPID], E_STREAMER_EXTRA_ID, arr);
+			format(arr, 32, "cp3_%s",  GetCPName( CPID));
+			if(funcidx(arr)!=-1)
+				CallLocalFunction(arr, "dddd", playerid, CPID, newkeys, oldkeys);
 
-			strdel(arr, 0, 1);
-
-			#if defined OnPlayerKeyStateChangeInCP
-				OnPlayerKeyStateChangeInCP(playerid, arr, CPID, newkeys, oldkeys);
-			#endif
-		} 
+		}
 	}
 	#if defined CP_OnPlayerKeyStateChange
 		return CP_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
@@ -506,15 +508,10 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 	#define _ALS_OnPlayerKeyStateChange
 #endif
  
-#define OnPlayerEnterDynamicArea CP_OnPlayerEnterDynamicArea
-#if defined CP_OnPlayerKeyStateChange
-	forward CP_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
-#endif
-#if defined OnPlayerKeyStateChangeInCP
-	forward OnPlayerKeyStateChangeInCP(playerid, name[], CPID, newkeys, oldkeys);
-#endif
+#define OnPlayerKeyStateChange CP_OnPlayerKeyStateChange
+forward CP_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
 
-#endif
+
 //-------------------------------------------------------------------------------------------------------------------------
 #if defined OnPlayerTextInCP
 public OnPlayerText(playerid, text[])
@@ -584,7 +581,6 @@ public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 			strins(arr, "cp1_", 0);
 				if(funcidx(arr)!=-1)
 					CallLocalFunction(arr, "dd", playerid, CPID);
-			printf("CPEnter: %s(%d, %d)", arr, playerid, CPID);
 		}	
 		return true;
 	}
@@ -610,7 +606,6 @@ public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 //-------------------------------------------------------------------------------------------------------------------------
 public OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 {
-	OnPlayerleaveDynArea(playerid, areaid);
 	new arr[32];
 	Streamer_GetArrayData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID, arr);
 	if(arr[0] == CP_STREAMER_IDENTIFIER)
@@ -658,4 +653,4 @@ public OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 #if defined CP_OnPlayerLeaveDynamicArea
 	forward CP_OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid);
 #endif
-//------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------
