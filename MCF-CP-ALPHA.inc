@@ -553,7 +553,6 @@ forward CP_OnPlayerText(playerid, text[]);
 
 public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 {
-	OnPlayerEnterDynArea(playerid, areaid);
 	new arr[32];
 	Streamer_GetArrayData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID, arr);
 	if(arr[0] == CP_STREAMER_IDENTIFIER)
@@ -603,7 +602,6 @@ public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 //-------------------------------------------------------------------------------------------------------------------------
 public OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 {
-	OnPlayerleaveDynArea(playerid, areaid);
 	new arr[32];
 	Streamer_GetArrayData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID, arr);
 	if(arr[0] == CP_STREAMER_IDENTIFIER)
