@@ -442,7 +442,7 @@ stock bool:IsPlayerInCP(playerid, CPID)
 	return IsPlayerConnected(playerid) && IsValidCPID(CPID) ? MCF_PlayerInCP[playerid][CPID]:false;
 
 stock IsPlayerInAnyCheckpointEx(playerid)
-	return IsPlayerConnected(playerid) && IsValidCPID(CPID) ? MCF_PlayerInfo[CPP_InAnyCP]:false;
+	return IsPlayerConnected(playerid) ? MCF_PlayerInfo[playerid][CPP_InAnyCP]:false;
 
 /*
 stock IsPlayerInCheckpointEx(playerid, name[])
@@ -513,22 +513,24 @@ forward CP_OnPlayerKeyStateChange(playerid, newkeys, oldkeys);
 
 
 //-------------------------------------------------------------------------------------------------------------------------
-#if defined OnPlayerTextInCP
 public OnPlayerText(playerid, text[])
 {
-	foreach(new CPID : Iter_CPS)
+	if(IsPlayerInAnyCheckpointEx(playerid))
 	{
-		if(InCP[playerid][CPID])
+		for(new CPID=1; CPID <= CPCount(); CPID++)
 		{
+			if(!IsCPEnabled(CPID))
+				continue;
+
+			if(!MCF_PlayerInCP[playerid][CPID])
+				continue;	
+
 			new arr[32];
-			Streamer_GetArrayData(STREAMER_TYPE_AREA, AreaCP[CPID], E_STREAMER_EXTRA_ID, arr);
+			format(arr, 32, "cp4_%s",  GetCPName( CPID));
+			if(funcidx(arr)!=-1)
+				CallLocalFunction(arr, "dds", playerid, CPID, text);
 
-			strdel(arr, 0, 1);
-
-			#if defined OnPlayerTextInCP
-				OnPlayerTextInCP(playerid, arr, CPID, text);
-			#endif
-		} 
+		}
 	}
 	#if defined CP_OnPlayerText
 		return CP_OnPlayerText(playerid, text);
@@ -543,14 +545,9 @@ public OnPlayerText(playerid, text[])
 #endif
  
 #define OnPlayerText CP_OnPlayerText
-#if defined CP_OnPlayerText
-	forward CP_OnPlayerText(playerid, text[]));
-#endif
-#if defined OnPlayerTextInCP
-	forward OnPlayerTextInCP(playerid, name[], CPID, text[]);
-#endif
+forward CP_OnPlayerText(playerid, text[]);
 
-#endif
+
 //-------------------------------------------------------------------------------------------------------------------------
 
 
@@ -606,6 +603,7 @@ public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 //-------------------------------------------------------------------------------------------------------------------------
 public OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 {
+	OnPlayerleaveDynArea(playerid, areaid);
 	new arr[32];
 	Streamer_GetArrayData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID, arr);
 	if(arr[0] == CP_STREAMER_IDENTIFIER)
