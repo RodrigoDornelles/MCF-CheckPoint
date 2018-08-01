@@ -73,9 +73,11 @@ alem de podem ter cores diferentes, e ser anexado, entre outras funcionalidades!
 #define MCF_Function												//List Functions
 //------------------------------------------
 #define CP_STREAMER_IDENTIFIER 	0xA7 								// §
+#define MAX_CP_NAME				0029								// Name Limit
 #define INVALID_CP 				0x00 								// CP NULL
 #define CP_Z_FIX				0.40								//FIZ FOOT POS
-#define MAX_CP_NAME				0029								// Name Limit
+#define MAPICON_NA 				-001								// No Use MAP ICON 
+
 #define CPType:					Float:								// 
 #define CP_MODE_CYLINDER		false 								//CP_MODE [GAMBI]
 #define CP_MODE_SPHERE			true 								//CP_MODE [COFIABLE]
@@ -131,6 +133,7 @@ enum ENUM_MCF_CP
 	CP_Color,
 	CP_Interior,
 	CP_World,
+	CP_Mapicon,
 	CP_Name[MAX_CP_NAME]
 }
 enum ENUM_MCF_AREA
@@ -171,11 +174,11 @@ static bool:MCF_PlayerInCP[MAX_PLAYERS][MAX_MCFCPS];					//Per Player 	Var
 //Features:
 forward MCF_Callback OnPlayerEnterCheckpointEx(playerid, checkpoint[], CPID);
 forward MCF_Callback OnPlayerExitCheckpointEx(playerid, checkpoint[], CPID);
-forward MCF_Callback OnCheckpointCreate(CPID, name[29], type, color, Float:x, Float:y, Float:z, worldid, interiorid, forplayer);
+forward MCF_Callback OnCheckpointCreate(CPID, name[29], type, color, Float:x, Float:y, Float:z, worldid, interiorid, forplayer, mapicon);
 //Create
 forward MCF_Function DestroyCheckPoint( CPID);
-forward MCF_Function CreatePlayerCheckPoint(playerid, name[29] = "", CPType:type= CP_CIRCLE, color= 0x99FF0000, Float:x=0.0, Float:y=0.0, Float:z=0.0, worldid = -1, interiorid = -1);
-forward MCF_Function CreateCheckPoint(name[29] = "", Float:type = CP_CIRCLE, color= 0x99FF0000, Float:x=0.0, Float:y=0.0, Float:z=0.0, worldid = -1, interiorid = -1, forplayer= -1);
+forward MCF_Function CreatePlayerCheckPoint(playerid, name[29] = "", CPType:type= CP_CIRCLE, color= 0x99FF0000, Float:x=0.0, Float:y=0.0, Float:z=0.0, worldid = -1, interiorid = -1, mapicon = MAPICON_NA);
+forward MCF_Function CreateCheckPoint(name[29] = "", CPType:type = CP_CIRCLE, color= 0x99FF0000, Float:x=0.0, Float:y=0.0, Float:z=0.0, worldid = -1, interiorid = -1, forplayer= -1, mapicon = MAPICON_NA);
 //Name
 forward MCF_Function GetCPName( CPID);
 forward MCF_Function bool:SetNameCP(CPID, name[]);
@@ -287,6 +290,7 @@ stock DestroyCheckPoint( CPID)
 {
 	DestroyDynamicObject(MCF_CPInfo[CPID][CP_Object]);
 	DestroyDynamicArea(MCF_CPInfo[CPID][CP_AreaId]);
+	DestroyDynamicMapIcon(MCF_CPInfo[CPID][CP_Mapicon]);
 	MCF_CPInfo[CPID][CP_use]=false;
 	return INVALID_CP;
 }
@@ -310,11 +314,11 @@ stock DestroyCheckPointEx( name[])
 	}
 	return count;
 }
-stock CreatePlayerCheckPoint(playerid, name[29] = "", Float:type= CP_CIRCLE, color= 0x99FF0000, Float:x=0.0, Float:y=0.0, Float:z=0.0, worldid = -1, interiorid = -1)
-	return CreateCheckPoint(name, type, color, x, y, z, worldid, interiorid, playerid);
+stock CreatePlayerCheckPoint(playerid, name[29] = "", Float:type= CP_CIRCLE, color= 0x99FF0000, Float:x=0.0, Float:y=0.0, Float:z=0.0, worldid = -1, interiorid = -1, mapicon = MAPICON_NA)
+	return CreateCheckPoint(name, type, color, x, y, z, worldid, interiorid, playerid,mapicon);
 
 
-stock CreateCheckPoint(name[29] = "", Float:type = CP_CIRCLE, color= 0x99FF0000, Float:x=0.0, Float:y=0.0, Float:z=0.0, worldid = -1, interiorid = -1, forplayer= -1)
+stock CreateCheckPoint(name[29] = "", Float:type = CP_CIRCLE, color= 0x99FF0000, Float:x=0.0, Float:y=0.0, Float:z=0.0, worldid = -1, interiorid = -1, forplayer= -1, mapicon = MAPICON_NA)
 {
 	if(forplayer != -1)						//Per player
 		if(!IsPlayerConnected(forplayer))	//Verify Player
@@ -344,7 +348,7 @@ stock CreateCheckPoint(name[29] = "", Float:type = CP_CIRCLE, color= 0x99FF0000,
 
 	if(size == 0.0)							//CP_INVISIBLE
 		size=type;							//Size per CP
-
+	//-----------------------------------------------------------------------------
 	obj=CreateDynamicObject(mdl, x, y, z - CP_Z_FIX, 0.0, 0.0, 0.0, worldid, interiorid, forplayer);
 	if(GetCPAreaMode() == CP_MODE_SPHERE)
 		CreateDynamicSphere(x, y, z,size, worldid, interiorid, forplayer);
@@ -353,7 +357,10 @@ stock CreateCheckPoint(name[29] = "", Float:type = CP_CIRCLE, color= 0x99FF0000,
 		area=CreateDynamicCircle(x,y,size, worldid, interiorid, forplayer);
 		SetCylinderFix(area,IT,z);
 	}
-
+	//-----------------------------------------------------------------------------
+	if(mapicon != MAPICON_NA)
+		MCF_CPInfo[CPID][CP_Mapicon] = CreateDynamicMapIcon(x, y, z, 0, color, worldid, interiorid, forplayer, STREAMER_MAP_ICON_SD, _:bool:mapicon);
+	//-----------------------------------------------------------------------------
 	if(IT == INTERNAL_CIRCLE)
 		SetDynamicObjectMaterial(obj, 0, 18646, "matcolours", "white", color);
 	else
@@ -363,7 +370,7 @@ stock CreateCheckPoint(name[29] = "", Float:type = CP_CIRCLE, color= 0x99FF0000,
 	Streamer_SetArrayData(STREAMER_TYPE_AREA, area, E_STREAMER_EXTRA_ID, arr);
 
 	AttachDynamicAreaToObject(area, obj);
-
+	//-----------------------------------------------------------------------------
 	format(MCF_CPInfo[CPID][CP_Name], MAX_CP_NAME, "%s", name); 
 	MCF_CPInfo[CPID][CP_forplayer]	=forplayer!=-1? true:false;
 	MCF_CPInfo[CPID][CP_Model]		=mdl;
