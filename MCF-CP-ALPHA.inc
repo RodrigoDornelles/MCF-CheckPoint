@@ -74,7 +74,7 @@ alem de podem ter cores diferentes, e ser anexado, entre outras funcionalidades!
 //------------------------------------------
 #define CP_STREAMER_IDENTIFIER 	0xA7 								// §
 #define INVALID_CP 				0x00 								// CP NULL
-#define CP_Z_FIX				0.50								//FIZ FOOT POS
+#define CP_Z_FIX				0.40								//FIZ FOOT POS
 #define MAX_CP_NAME				0029								// Name Limit
 #define CPType:					Float:								// 
 #define CP_MODE_CYLINDER		false 								//CP_MODE [GAMBI]
@@ -82,8 +82,10 @@ alem de podem ter cores diferentes, e ser anexado, entre outras funcionalidades!
 
 #define CP_ARROW 				Float:0xFFFFF1						//TYPE 
 #define	CP_CIRCLE_BIG			Float:0xFFFFF2						//TYPE
+#define	CP_BIG_CIRCLE			Float:0xFFFFF2						//TYPE
 #define	CP_CIRCLE 				Float:0xFFFFF3						//TYPE
 #define	CP_INVISIBLE: 			Float:								//TYPE:size
+#define CP_INFINITE_CIRCLE 		Float:0xFFFFF5						//Type
 
 #define INTERNAL_ARROW			0000								//CP_ARROW 
 #define INTERNAL_CIRCLE_BIG		0001								//CP_CIRCLE_BIG
@@ -288,7 +290,26 @@ stock DestroyCheckPoint( CPID)
 	MCF_CPInfo[CPID][CP_use]=false;
 	return INVALID_CP;
 }
+stock DestroyCheckPointEx( name[])
+{
+	// isnull
+	if((!(name[0])) || (((name[0]) == '\1') && (!(name[1]))))
+		return 0;
 
+	new count=0;
+	for(new CPID=1; CPID <= CPCount(); CPID++)
+	{
+		if(!IsCPEnabled(CPID))
+			continue;
+
+		if(strcmp(name, GetCPName( CPID))
+			continue;
+		
+		DestroyCheckPoint( CPID);
+		count++;
+	}
+	return count;
+}
 stock CreatePlayerCheckPoint(playerid, name[29] = "", Float:type= CP_CIRCLE, color= 0x99FF0000, Float:x=0.0, Float:y=0.0, Float:z=0.0, worldid = -1, interiorid = -1)
 	return CreateCheckPoint(name, type, color, x, y, z, worldid, interiorid, playerid);
 
@@ -324,7 +345,7 @@ stock CreateCheckPoint(name[29] = "", Float:type = CP_CIRCLE, color= 0x99FF0000,
 	if(size == 0.0)							//CP_INVISIBLE
 		size=type;							//Size per CP
 
-	obj=CreateDynamicObject(mdl, x, y, z, 0.0, 0.0, 0.0, worldid, interiorid, forplayer);
+	obj=CreateDynamicObject(mdl, x, y, z - CP_Z_FIX, 0.0, 0.0, 0.0, worldid, interiorid, forplayer);
 	if(GetCPAreaMode() == CP_MODE_SPHERE)
 		CreateDynamicSphere(x, y, z,size, worldid, interiorid, forplayer);
 	else 
@@ -444,38 +465,27 @@ stock bool:IsPlayerInCP(playerid, CPID)
 stock IsPlayerInAnyCheckpointEx(playerid)
 	return IsPlayerConnected(playerid) ? MCF_PlayerInfo[playerid][CPP_InAnyCP]:false;
 
-/*
-stock IsPlayerInCheckpointEx(playerid, name[])
+
+stock bool:IsPlayerInCheckpointEx(playerid, name[])
 {
 	// isnull
 	if((!(name[0])) || (((name[0]) == '\1') && (!(name[1]))))
 		return false;
 
-	static STREAMER_TAG_AREA areas[500];
-
-	new 
-		STREAMER_TAG_AREA num = STREAMER_TAG_AREA GetPlayerDynamicAreas(playerid, areas),
-		arr[32]
-	;
-
-	for(new STREAMER_TAG_AREA i; i < num; ++i)
+	for(new CPID=1; CPID <= CPCount(); CPID++)
 	{
-		Streamer_GetArrayData(STREAMER_TYPE_AREA, i, E_STREAMER_EXTRA_ID, arr);
-		if(arr[0] == CP_STREAMER_IDENTIFIER)
-		{
-			// isnull
-			if((!(arr[1])) || (((arr[1]) == '\1') && (!(arr[2]))))
+		if(!IsCPEnabled(CPID))
 				continue;
 
-			strdel(arr, 0, 1);
+		if(!MCF_PlayerInCP[playerid][CPID])
+				continue;	
 
-			if(!strcmp(arr, name))
-				return true;
-		}
+		if(!strcmp(name, GetCPName( CPID))
+			return true;
 	}
 	return false;
 }
-*/
+
 //-------------------------------------------------------------------------------------------------------------------------
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 {
@@ -593,11 +603,7 @@ public OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 #endif
  
 #define OnPlayerEnterDynamicArea CP_OnPlayerEnterDynamicArea
-#if defined CP_OnPlayerEnterDynamicArea
-	forward CP_OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid);
-#endif
-
-
+forward CP_OnPlayerEnterDynamicArea(playerid, STREAMER_TAG_AREA areaid);
 
 //-------------------------------------------------------------------------------------------------------------------------
 public OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid)
@@ -646,7 +652,6 @@ public OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid)
 #endif
  
 #define OnPlayerLeaveDynamicArea CP_OnPlayerLeaveDynamicArea
-#if defined CP_OnPlayerLeaveDynamicArea
-	forward CP_OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid);
-#endif
+forward CP_OnPlayerLeaveDynamicArea(playerid, STREAMER_TAG_AREA areaid);
+
 //-------------------------------------------------------------------------------------------------------------------------
